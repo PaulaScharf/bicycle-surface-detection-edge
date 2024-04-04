@@ -13,9 +13,9 @@ String dataStr = "";
 char report[256];
 volatile int interruptCount = 0;
 
-// A buffer holding the last 4000 ms of data at 17 Hz and 6 recorded values at a time
-const int RING_BUFFER_SIZE = int((4000/17)*6);
-float save_data[RING_BUFFER_SIZE] = {0.0};
+// A buffer holding the last 3000 ms of data at 17 Hz and 6 recorded values at a time
+const int RING_BUFFER_SIZE = int((3000/17)*6);
+float save_data[RING_BUFFER_SIZE][6] = {{0.0,0.0,0.0,0.0,0.0,0.0}};
 // Most recent position in the save_data buffer
 int begin_index = 0;
 // True if there is not yet enough data to run inference
@@ -24,6 +24,16 @@ bool pending_initial_data = true;
 int sample_every_n;
 // The number of measurements since we last saved one
 int sample_skip_counter = 1;
+
+
+// Define an array to store the column averages
+float averages[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+float min_values[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+float max_values[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+float std_values[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+float rms[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+float skew[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+float kurt[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 
 
 bool SetupMPU() {
@@ -44,16 +54,19 @@ bool ReadMPU(float* input,
     begin_index = 0;
     pending_initial_data = true;
   }
+  Serial.println(millis()-lastReading);
+  lastReading = millis();
   mpu.getEvent(&a, &g, &temp);
-  save_data[begin_index++] = a.acceleration.x;
-  save_data[begin_index++] = a.acceleration.y;
-  save_data[begin_index++] = a.acceleration.z;
-  save_data[begin_index++] = a.gyro.x;
-  save_data[begin_index++] = a.gyro.y;
-  save_data[begin_index++] = a.gyro.z;
+  begin_index=begin_index+1;
+  save_data[begin_index][0] = a.acceleration.x;
+  save_data[begin_index][1] = a.acceleration.y;
+  save_data[begin_index][2] = a.acceleration.z;
+  save_data[begin_index][3] = a.gyro.x;
+  save_data[begin_index][4] = a.gyro.y;
+  save_data[begin_index][5] = a.gyro.z;
   bool new_data = false;
   // If we reached the end of the circle buffer, reset
-  if (begin_index >= (1400)) {
+  if (begin_index >= (RING_BUFFER_SIZE)) {
     begin_index = 0;
     // Check if we are ready for prediction or still pending more initial data
     if (pending_initial_data) {
@@ -66,17 +79,36 @@ bool ReadMPU(float* input,
     return false;
   }
 
-  // Copy the requested number of bytes to the provided input tensor
-  for (int i = 0; i < length; ++i) {
-    int ring_array_index = begin_index + i - length;
-    if (ring_array_index < 0) {
-      ring_array_index += (1400);
-    }
-    input[i] = save_data[ring_array_index];
-    // Serial.print(input[i]);
-    // Serial.print(",");
+  // TODO: flattening is too slow 
+
+  // Iterate over each column
+  for (int j = 0; j < 6; ++j) {
+      // Calculate the sum of values in the current column
+      float sum = 0;
+      float max_val = -10000;
+      float min_val = 10000;
+      float sum_squared = 0;
+      float sum_cubed = 0;
+      float sum_fourth = 0;
+      for (int i = 0; i < RING_BUFFER_SIZE; ++i) {
+          float current = save_data[i][j];
+          sum += current;
+          min_val = min(min_val, current);
+          max_val = max(max_val, current);
+          sum_squared += pow(current, 2);
+          sum_cubed += pow(current, 3);
+          sum_fourth += pow(current, 4);
+      }
+      // Calculate the average of values in the current column
+      input[j*7] = sum / RING_BUFFER_SIZE; // average
+      input[j*7+1] = min_val; // minimum
+      input[j*7+2] = max_val; // maximum
+      float variance = (sum_squared / RING_BUFFER_SIZE) - pow(averages[j], 2);
+      input[j*7+3] = sqrt(variance); // standard deviation
+      input[j*7+4] = sqrt(sum_squared / RING_BUFFER_SIZE); // rms
+      input[j*7+5] = (sum_cubed / RING_BUFFER_SIZE - (3 * averages[j] * variance) - pow(averages[j], 3)) / pow(std_values[j], 3); // skew
+      input[j*7+6] = (sum_fourth / RING_BUFFER_SIZE - (4 * averages[j] * (sum_cubed / RING_BUFFER_SIZE)) + (6 * pow(averages[j], 2) * variance) - (3 * pow(averages[j], 4))) / pow(variance, 2); // kurt
   }
-  // Serial.print("\n");
-  // TODO: Flatten
+
   return true;
 }
