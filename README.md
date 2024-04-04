@@ -9,4 +9,4 @@ To turn the resulting trained tflite model into an array of bytes for running it
 
 
 ### deployment_sensebox/
-__TODO: input should be flattened just like its done during training__
+__TODO: flattening of the input is too slow__
