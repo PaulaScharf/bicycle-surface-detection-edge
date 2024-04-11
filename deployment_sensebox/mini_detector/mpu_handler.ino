@@ -14,7 +14,7 @@ char report[256];
 volatile int interruptCount = 0;
 
 // A buffer holding the last 3000 ms of data at 17 Hz and 6 recorded values at a time
-const int RING_BUFFER_SIZE = int((3000/17)*6);
+const int RING_BUFFER_SIZE = int((1000/17)*6);
 float save_data[RING_BUFFER_SIZE][6] = {{0.0,0.0,0.0,0.0,0.0,0.0}};
 // Most recent position in the save_data buffer
 int begin_index = 0;
@@ -47,14 +47,8 @@ bool SetupMPU() {
 
 int lastReading = 0;
 bool ReadMPU(float* input,
-                       int length, bool reset_buffer) {
-                        // Clear the buffer if required, e.g. after a successful prediction
-  if (reset_buffer) {
-    memset(save_data, 0, RING_BUFFER_SIZE * sizeof(float)*64);
-    begin_index = 0;
-    pending_initial_data = true;
-  }
-  Serial.println(millis()-lastReading);
+                       int length) {
+  // Serial.println(millis()-lastReading);
   lastReading = millis();
   mpu.getEvent(&a, &g, &temp);
   begin_index=begin_index+1;
@@ -78,8 +72,6 @@ bool ReadMPU(float* input,
   if (pending_initial_data) {
     return false;
   }
-
-  // TODO: flattening is too slow 
 
   // Iterate over each column
   for (int j = 0; j < 6; ++j) {
@@ -106,9 +98,18 @@ bool ReadMPU(float* input,
       float variance = (sum_squared / RING_BUFFER_SIZE) - pow(averages[j], 2);
       input[j*7+3] = sqrt(variance); // standard deviation
       input[j*7+4] = sqrt(sum_squared / RING_BUFFER_SIZE); // rms
-      input[j*7+5] = (sum_cubed / RING_BUFFER_SIZE - (3 * averages[j] * variance) - pow(averages[j], 3)) / pow(std_values[j], 3); // skew
+      if (input[j*7+3] > 0) {
+        input[j*7+5] = (sum_cubed / RING_BUFFER_SIZE - (3 * averages[j] * variance) - pow(averages[j], 3)) / pow(input[j*7+3], 3); // skew
+      } else {
+        input[j*7+5] = 0; // Set skewness to 0 if standard deviation is close to zero
+      }
       input[j*7+6] = (sum_fourth / RING_BUFFER_SIZE - (4 * averages[j] * (sum_cubed / RING_BUFFER_SIZE)) + (6 * pow(averages[j], 2) * variance) - (3 * pow(averages[j], 4))) / pow(variance, 2); // kurt
   }
+
+  // Flattening is very slow, so we cant do it live. So we have to reset everytime
+  memset(save_data, 0, sizeof(save_data));
+  begin_index = 0;
+  pending_initial_data = true;
 
   return true;
 }

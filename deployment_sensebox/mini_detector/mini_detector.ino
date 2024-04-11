@@ -86,20 +86,25 @@ void Predict() {
         return;
     }
     const float* prediction_scores = interpreter->output(0)->data.f;
-    Serial.print(prediction_scores[0]);
-    Serial.print(" ");
-    Serial.print(prediction_scores[1]);
-    Serial.print(" ");
-    Serial.println(prediction_scores[2]);
+    Serial.printf("paving_stones:%f,sett:%f,asphalt:%f\n", prediction_scores[0],prediction_scores[1],prediction_scores[2]);
 }
 
-void loop() { 
-  // Attempt to read new data from the VL53L8CX.
-  bool got_data =
-      ReadMPU(model_input->data.f, input_length, false);
-  // If there was no new data, wait until next time.
-  if (!got_data) return;
+const long measurement_interval = 1000/17.24137931034483; // Insert the frequency as it is given by edge impulse
+long start_time = 0;
+long actual_time = 0;
 
-  Predict();
+void loop() { 
+  start_time = millis();
+  if (start_time > actual_time + measurement_interval) {
+    actual_time = millis();
+    // Attempt to read new data from the VL53L8CX.
+    bool got_data =
+        ReadMPU(model_input->data.f, input_length);
+    // If there was no new data, wait until next time.
+    if (got_data) {
+      Serial.println(1);
+      Predict();
+    }
+  } 
 
 }
