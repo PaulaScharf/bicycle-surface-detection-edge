@@ -14,6 +14,7 @@ char report[256];
 volatile int interruptCount = 0;
 
 // A buffer holding the last 3000 ms of data at 31.25 Hz
+// Its meant to be a ring buffer, but because the flattening is so slow, we cant use it like that, and have to empty it after every predicition
 const int RING_BUFFER_SIZE = int(3*31.25);
 float save_data[RING_BUFFER_SIZE][6] = {{0.0,0.0,0.0,0.0,0.0,0.0}};
 // Most recent position in the save_data buffer
@@ -26,7 +27,7 @@ int sample_every_n;
 int sample_skip_counter = 1;
 
 
-// Define an array to store the column averages
+// Define an array to store the column statistics
 float averages[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 float min_values[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 float max_values[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -45,11 +46,11 @@ bool SetupMPU() {
 }
 
 
-int lastReading = 0;
+//int lastReading = 0;
 bool ReadMPU(float* input,
                        int length) {
   // Serial.println(millis()-lastReading);
-  lastReading = millis();
+  //lastReading = millis();
   mpu.getEvent(&a, &g, &temp);
   begin_index=begin_index+1;
   save_data[begin_index][0] = a.acceleration.x;
@@ -101,7 +102,7 @@ bool ReadMPU(float* input,
       if (input[j*7+3] > 0) {
         input[j*7+5] = (sum_cubed / RING_BUFFER_SIZE - (3 * averages[j] * variance) - pow(averages[j], 3)) / pow(input[j*7+3], 3); // skew
       } else {
-        input[j*7+5] = 0; // Set skewness to 0 if standard deviation is close to zero
+        input[j*7+5] = 0; // Set skewness to 0 if standard deviation is zero
       }
       input[j*7+6] = (sum_fourth / RING_BUFFER_SIZE - (4 * averages[j] * (sum_cubed / RING_BUFFER_SIZE)) + (6 * pow(averages[j], 2) * variance) - (3 * pow(averages[j], 4))) / pow(variance, 2); // kurt
   }

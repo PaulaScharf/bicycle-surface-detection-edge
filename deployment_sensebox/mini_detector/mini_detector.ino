@@ -15,19 +15,18 @@
 
 // Globals, used for compatibility with Arduino-style sketches.
 namespace {
-const tflite::Model* model = nullptr;
-tflite::MicroInterpreter* interpreter = nullptr;
-TfLiteTensor* model_input = nullptr;
-int input_length;
+  const tflite::Model* model = nullptr;
+  tflite::MicroInterpreter* interpreter = nullptr;
+  TfLiteTensor* model_input = nullptr;
+  int input_length;
 
-// Create an area of memory to use for input, output, and intermediate arrays.
-// The size of this will depend on the model you're using, and may need to be
-// determined by experimentation.
-constexpr int kTensorArenaSize = 7 * 1024 + 1008 ;
-uint8_t tensor_arena[kTensorArenaSize];
-}  // namespace
+  // Create an area of memory to use for input, output, and intermediate arrays.
+  // The size of this will depend on the model you're using, and may need to be
+  // determined by experimentation.
+  constexpr int kTensorArenaSize = 7 * 1024 + 1008 ;
+  uint8_t tensor_arena[kTensorArenaSize];
+}
 
-// The name of this function is important for Arduino compatibility.
 void setup() {
   Serial.begin(115200);
   delay(2000);
@@ -68,7 +67,7 @@ void setup() {
   }
 
   input_length = model_input->bytes / sizeof(float);
-  Serial.printf("input_length: %i \n", input_length);
+  // Serial.printf("input_length: %i \n", input_length);
 
   bool setup_status = SetupMPU();
   if (!setup_status) {
@@ -76,8 +75,6 @@ void setup() {
   }
 }
 
-// This is the regular function we run to recognize Maneuvers from a pretrained
-// model.
 void Predict() {
     // Run inference, and report any error.
     TfLiteStatus invoke_status = interpreter->Invoke();
@@ -89,7 +86,7 @@ void Predict() {
     Serial.printf("paving_stones:%f,sett:%f,asphalt:%f\n", prediction_scores[0],prediction_scores[1],prediction_scores[2]);
 }
 
-const long measurement_interval = 1000/31.25; // Insert the frequency as it is given by edge impulse
+const long measurement_interval = 1000/31.25; // Insert the recordingfrequency as it is given by edge impulse
 long start_time = 0;
 long actual_time = 0;
 
@@ -97,10 +94,9 @@ void loop() {
   start_time = millis();
   if (start_time > actual_time + measurement_interval) {
     actual_time = millis();
-    // Attempt to read new data from the VL53L8CX.
     bool got_data =
         ReadMPU(model_input->data.f, input_length);
-    // If there was no new data, wait until next time.
+    // Only predict once we collected enough data
     if (got_data) {
       Predict();
     }
