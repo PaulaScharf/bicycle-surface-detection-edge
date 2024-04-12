@@ -9,4 +9,4 @@ To turn the resulting trained tflite model into an array of bytes for running it
 
 
 ### deployment_sensebox/
-__TODO: flattening of the input is too slow__
+Insert the byte array, that was generated in the previous step, in the `mpu_handler.ino`. If you change the recording frequency and window size of the trainingsdata, you also need to change it here. Currently its set at 31.25 Hz with a window size of 3 seconds.
