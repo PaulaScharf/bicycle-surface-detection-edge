@@ -89,7 +89,7 @@ void Predict() {
     Serial.printf("paving_stones:%f,sett:%f,asphalt:%f\n", prediction_scores[0],prediction_scores[1],prediction_scores[2]);
 }
 
-const long measurement_interval = 1000/17.24137931034483; // Insert the frequency as it is given by edge impulse
+const long measurement_interval = 1000/31.25; // Insert the frequency as it is given by edge impulse
 long start_time = 0;
 long actual_time = 0;
 
@@ -102,7 +102,6 @@ void loop() {
         ReadMPU(model_input->data.f, input_length);
     // If there was no new data, wait until next time.
     if (got_data) {
-      Serial.println(1);
       Predict();
     }
   } 

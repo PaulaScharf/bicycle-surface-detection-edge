@@ -13,8 +13,8 @@ String dataStr = "";
 char report[256];
 volatile int interruptCount = 0;
 
-// A buffer holding the last 3000 ms of data at 17 Hz and 6 recorded values at a time
-const int RING_BUFFER_SIZE = int((1000/17)*6);
+// A buffer holding the last 3000 ms of data at 31.25 Hz
+const int RING_BUFFER_SIZE = int(3*31.25);
 float save_data[RING_BUFFER_SIZE][6] = {{0.0,0.0,0.0,0.0,0.0,0.0}};
 // Most recent position in the save_data buffer
 int begin_index = 0;
