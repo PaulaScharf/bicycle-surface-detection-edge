@@ -23,6 +23,7 @@ To turn the resulting trained tflite model into an array of bytes for running it
 
 `xxd -i models/model_dense.tflite > models/model_dense.cc`
 
+It might make sense to look into standardization or normalization of the data, as this will probably improve the training process. Note, that if you standardize/normalize during training you will also have to standardize/normalize during deployment.
 
 ### deployment_sensebox/mini_detector/
 Insert the byte array, that was generated in the previous step, in the `mpu_handler.ino`. If you change the recording frequency and window size of the trainingsdata, you also need to change it here. Currently its set at 31.25 Hz with a window size of 3 seconds.
