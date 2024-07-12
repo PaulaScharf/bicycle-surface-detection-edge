@@ -6,12 +6,22 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import os
 
+data_dict = {
+    "asphalt": "data_preprocessing/data/asphalt_data_2024-07-05_09-13-22.csv",
+    "compacted": "data_preprocessing/data/compacted_data_2024-07-08_08-48-56.csv",
+    "paving": "data_preprocessing/data/paving_stones_data_2024-07-08_11-50-07.csv",
+    "sett": "data_preprocessing/data/sett_data_2024-07-05_09-07-51.csv",
+    "standing": "data_preprocessing/data/standing_data_2024-07-05_09-21-11.csv",
+}
+
+current_data = "sett"
+
 # Function to save chunks with k-means label 0 to separate CSV files
 def save_chunks(chunks, output_dir='output_chunks'):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     for i, chunk in enumerate(chunks):
-        chunk.to_csv(os.path.join(output_dir, f'chunk_{i}.csv'), index=False)
+        chunk.to_csv(os.path.join(output_dir, f'{current_data}_chunk_{i}.csv'), index=False)
 
 # Function to read the CSV file and split data into 3000ms chunks
 def read_and_chunk_data(filename, chunk_duration=3000, time_threshold=20):
@@ -25,7 +35,6 @@ def read_and_chunk_data(filename, chunk_duration=3000, time_threshold=20):
         current_time = float(row[6])  # Assuming the timestamp is in the seventh column
                 
         if previous_row is not None and (current_time - previous_row) > time_threshold:
-            print(current_time)
             chunks.append(pd.DataFrame(chunk))
             chunk = [row]
         else:
@@ -61,7 +70,7 @@ def calculate_features(chunk):
     return features
 
 # Function to plot chunks with k-means label 0
-def plot_chunks_with_label_0(chunks):
+def plot_chunks_with_label_0(chunks, outfile="full.png"):
     chunks_combined = chunks[0]
     for i, chunk in enumerate(chunks):
         chunks_combined = pd.concat([chunks_combined, chunk], ignore_index=True)
@@ -76,7 +85,12 @@ def plot_chunks_with_label_0(chunks):
     plt.xlabel('Timestamp')
     plt.ylabel('Sensor Values')
     plt.legend()
-    plt.show()
+    # plt.show()
+
+    output_dir = f'data_preprocessing/data/plots_{current_data}'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    plt.savefig(os.path.join(output_dir,outfile))
 
 # Main function to process the data and apply k-means clustering
 def main(filename):
@@ -113,14 +127,14 @@ def main(filename):
     non_anomalies = [chunks[i] for i, distance in enumerate(distances) if distance < threshold_distance]
 
     # Plot chunks with k-means label 0
-    plot_chunks_with_label_0(chunks)
-    plot_chunks_with_label_0(non_anomalies)
-    plot_chunks_with_label_0(anomalies)
+    plot_chunks_with_label_0(chunks,outfile="full.png")
+    plot_chunks_with_label_0(non_anomalies,outfile="none.png")
+    plot_chunks_with_label_0(anomalies,outfile="anomalies.png")
 
-    save_chunks(non_anomalies, output_dir="paving_non_anomalies")
-    save_chunks(anomalies, output_dir="paving_anomalies")
+    save_chunks(non_anomalies, output_dir="data_preprocessing/data/" + current_data + "_non_anomalies")
+    save_chunks(anomalies, output_dir="data_preprocessing/data/" + current_data + "_anomalies")
 
 
 if __name__ == '__main__':
-    filename = '/home/paula/Documents/stuff/testi/paving_stones_data_2024-07-08_11-50-07.csv'  # Replace with your CSV file name
+    filename = data_dict[current_data]
     main(filename)
