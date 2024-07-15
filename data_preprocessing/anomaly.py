@@ -12,9 +12,14 @@ data_dict = {
     "paving": "data_preprocessing/data/paving_stones_data_2024-07-08_11-50-07.csv",
     "sett": "data_preprocessing/data/sett_data_2024-07-05_09-07-51.csv",
     "standing": "data_preprocessing/data/standing_data_2024-07-05_09-21-11.csv",
+    "sett_paula": "data_preprocessing/data_paula/sett_2024-07-15_07-14-34.csv",
+    "paving_paula": "data_preprocessing/data_paula/paving_2024-07-15_06-58-51.csv",
+    "compacted_paula": "data_preprocessing/data_paula/compacted_2024-07-14_15-49-19.csv",
+    "standing_paula": "data_preprocessing/data_paula/standing_2024-07-15_07-23-15.csv",
+    "asphalt_paula": "data_preprocessing/data_paula/asphalt_2024-07-14_15-39-43.csv",
 }
 
-current_data = "sett"
+current_data = "sett_paula"
 
 # Function to save chunks with k-means label 0 to separate CSV files
 def save_chunks(chunks, output_dir='output_chunks'):
@@ -87,7 +92,7 @@ def plot_chunks_with_label_0(chunks, outfile="full.png"):
     plt.legend()
     # plt.show()
 
-    output_dir = f'data_preprocessing/data/plots_{current_data}'
+    output_dir = f'data_preprocessing/data_paula/plots_{current_data}'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     plt.savefig(os.path.join(output_dir,outfile))
@@ -131,8 +136,8 @@ def main(filename):
     plot_chunks_with_label_0(non_anomalies,outfile="none.png")
     plot_chunks_with_label_0(anomalies,outfile="anomalies.png")
 
-    save_chunks(non_anomalies, output_dir="data_preprocessing/data/" + current_data + "_non_anomalies")
-    save_chunks(anomalies, output_dir="data_preprocessing/data/" + current_data + "_anomalies")
+    save_chunks(non_anomalies, output_dir="data_preprocessing/data_paula/" + current_data + "_non_anomalies")
+    save_chunks(anomalies, output_dir="data_preprocessing/data_paula/" + current_data + "_anomalies")
 
 
 if __name__ == '__main__':
